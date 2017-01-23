@@ -1,16 +1,102 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "PSY 710: Assignment 1"
+output: 
+  html_notebook: 
+    toc: yes
+author: "Tinashe M. Tapera"
+date: "23 January 2017"
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+This assignment follows question 11.10 in **Fundamental Statistics for the Behavioral Sciences** by Howell.
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
-```{r}
-plot(cars)
+```{r, include=FALSE}
+library(data.table)
+library(tidyverse)
+library(dtplyr)
+library(ggplot2)
+hw1 = fread('https://www.uvm.edu/~dhowell/fundamentals8/DataFiles/Mireault.dat')
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+```{r}
+head(hw1)
+summary(hw1)
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
+> Use stem-and-leaf-plots and boxplots to examine the variables DepressT and SuppTotl. Summarize your findings.
+
+First of all, the 999 is probably an error code for missing data. We'll recode the whole data set to reflect this.
+
+```{r}
+recode999 = function(x){
+  for(i in length(x)){
+    if(x == 999){
+      x = NA
+    }
+  }
+}
+hw1 = data.frame(apply(hw1, 2, function(x) replace(x, x == 999, NA)))
+```
+
+Now we can try again:
+
+```{r}
+boxplot(hw1$DepressT)
+stem(hw1$DepressT)
+boxplot(hw1$SuppTotl)
+stem(hw1$SuppTotl)
+```
+
+The distribution of the variables from the stem plots seems somewhat normal, with many counts in the middle of the range, and fewer counts towards the tail ends. SuppTotl probably has a heavy left tail due to the small amount of data to the right of the distribution between the 8- and the 10-th bins. There are no statistical outliers in the DepressT variable, but many on the lower end of the distribution in the SuppTotl variable, and one on the upper end.
+
+> Produce a scatterplot of DepressT and SuppTotl and describe your observations
+
+```{r, warning=FALSE}
+qplot(hw1$DepressT,hw1$SuppTotl, main = "Scatter Plot of the Data")
+```
+
+This plot doesn't say too much, but suggests possibly a slightly negative correlation. We have to keep in mind the outliers mentioned earlier in the SuppTotl variable, so let us mark those outliers in the plot to see if there's possibly a stronger correlation if the outliers were removed.
+
+```{r, warning=FALSE}
+outs = boxplot.stats(hw1$SuppTotl)$out
+outlier = rep(0, length(hw1$SuppTotl))
+outlier[match(outs, hw1$SuppTotl)] = 1
+qplot(hw1$DepressT,hw1$SuppTotl, main = "Scatter Plot of the Data", shape = as.factor(outlier), col = as.factor(outlier))
+```
+
+This plot probably raises more questions than it answers to be honest, because it suggests that the points contributing to the negativity of the correlation might be invalid.
+
+> Run a correlation analysis for the two variables. Is the correlation coefficient significant?
+
+```{r}
+cor.test(hw1$DepressT,hw1$SuppTotl)
+```
+
+It looks like the correlation coefficient is significant, as *p* is far less than 0.05. The correlation coefficient itself is -0.26, weakly negative as previously assumed.
+
+> BUild a simple linear regression model with SuppTotl to predict DepressT. State your estimated regression equation and interpret the estimated coefficients.
+
+The regression model would take the form $Y_i = \beta_0 + \beta_1X_i + \epsilon_i$, where Y = DepressT, X = SuppTotl, $\beta_0$ is the intercept of the model, $\beta_1$ is the coefficient of SuppTotl, and $\epsilon_i$ represents the variance of the irreducible error. Essentially:
+
+$$DepressT = \beta_0 + \beta_1\times SuppTotl + \epsilon$$
+
+```{r}
+model1 = lm(DepressT ~ SuppTotl,data = hw1)
+summary(model1)
+```
+
+The intercept $\beta_0$ is estimated to be 74.977; this implies that even if levels of total support (SuppTotl) are zero, depression (DepressT) has a value of approximately 75 on their scale. This would make sense, as lack of social support wouldn't necessarily *decrease* depression. Likewise, the coefficient for social support $\beta_1$ is -0.2099; this implies that for every unit increase in social support, depression decreases by 0.2099 units. This is also sensible, as social support is *probably likely* to decrease depression. Additionally, each of these $\beta$ estimates is significant.
+
+> List the 4 assumptions required for a linear regression model.
+
+- Observations are independent
+- Relationship is linear
+- Standard deviations of y is the same for all x
+- Y varies normally around its mean
+
+> Examine the assumptions for the fitted model.
+
+1. The observations should be independent, as there is no inclination that any of the observations were taken from the same participant or otherwise.
+
+2. From the scatterplot, we can assume that the relationship would be best modeled as a linear one. A non-linear relationship would probably add more complexity that it would benefit the prediction.
+
+3. 
