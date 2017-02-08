@@ -1,0 +1,77 @@
+---
+title: 'PSY 710: Assignment 3'
+author: "Tinashe M. Tapera"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+> Use the "default" data set to run a logistic regression model with Student as the only independent variable to predict whether customers are likely to default on their credit card or not.
+
+```{r}
+setwd("/Users/mac/Dropbox/Drexel\ U/Psychology/PSY\ 710/PSY710_Assignments")
+library(foreign)
+default = read.spss("default.sav", to.data.frame =  TRUE)
+default$default = ifelse(default$default == "no", 0,1)
+default$student = ifelse(default$student == "No", 0,1)
+head(default)
+model = glm(default ~ student, data = default, family = "binomial")
+summary(model)
+```
+
+> a) Based on the model output, what is the odds of a customer who is likely to default given that he or she is a student?
+
+Using the probability formula given by the logit function:
+
+$$P(default) = \frac{e^{b_0 + b_1X}} {1+e^{b_0 + b_1X}}$$
+
+The probability that someone defaults (1), given that they are a student (1) is:
+```{r}
+P_default = exp(as.numeric(model$coefficients[1])+
+                as.numeric(model$coefficients[2])*1)/(
+                1+exp(as.numeric(model$coefficients[1])+
+                as.numeric(model$coefficients[2])*1))
+P_default
+```
+
+The probability that they don't default, given that they are a student:
+```{r}
+p_prime = 1-P_default
+p_prime
+```
+
+Therefore the odds of someone defaulting given that they are a student is given by:
+```{r}
+P_default/p_prime
+```
+
+> b) What is the odds of a customer who is likely to default given that the customer is not a student?
+
+The probability that someone defaults (1), given that they are not a student (0) is:
+```{r}
+P_default = exp(as.numeric(model$coefficients[1])+
+                as.numeric(model$coefficients[2])*0)/(
+                1+exp(as.numeric(model$coefficients[1])+
+                as.numeric(model$coefficients[2])*0))
+P_default
+```
+
+The probability that they don't default, given that they are not a student:
+```{r}
+p_prime = 1-P_default
+p_prime
+```
+
+Therefore the odds of someone defaulting given that they are not a student is given by:
+```{r}
+P_default/p_prime
+```
+
+> c) What is the odds ratio and how to interpret it?
+
+The odds ratio is:
+```{r}
+0.04508342/0.03007299
+```
+
+This means that the odds of a person defaulting is 1.499 times higher if they are a student, than if not.

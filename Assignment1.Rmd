@@ -1,10 +1,12 @@
 ---
-title: "PSY 710: Assignment 1"
-output: 
-  html_notebook: 
-    toc: yes
+title: 'PSY 710: Assignment 1'
 author: "Tinashe M. Tapera"
 date: "23 January 2017"
+output:
+  pdf_document:
+    toc: yes
+  html_notebook:
+    toc: yes
 ---
 
 This assignment follows question 11.10 in **Fundamental Statistics for the Behavioral Sciences** by Howell.
@@ -19,7 +21,6 @@ hw1 = fread('https://www.uvm.edu/~dhowell/fundamentals8/DataFiles/Mireault.dat')
 
 ```{r}
 head(hw1)
-summary(hw1)
 ```
 
 > Use stem-and-leaf-plots and boxplots to examine the variables DepressT and SuppTotl. Summarize your findings.
@@ -48,13 +49,20 @@ stem(hw1$SuppTotl)
 
 The distribution of the variables from the stem plots seems somewhat normal, with many counts in the middle of the range, and fewer counts towards the tail ends. SuppTotl probably has a heavy left tail due to the small amount of data to the right of the distribution between the 8- and the 10-th bins. There are no statistical outliers in the DepressT variable, but many on the lower end of the distribution in the SuppTotl variable, and one on the upper end.
 
+```{r}
+summary(hw1$SuppTotl)
+summary(hw1$DepressT)
+```
+
+From the above, we know that the median for the variables is
+
 > Produce a scatterplot of DepressT and SuppTotl and describe your observations
 
 ```{r, warning=FALSE}
 qplot(hw1$DepressT,hw1$SuppTotl, main = "Scatter Plot of the Data")
 ```
 
-This plot doesn't say too much, but suggests possibly a slightly negative correlation. We have to keep in mind the outliers mentioned earlier in the SuppTotl variable, so let us mark those outliers in the plot to see if there's possibly a stronger correlation if the outliers were removed.
+This plot doesn't say too much, but suggests possibly a slightly negative linear correlation. We have to keep in mind the outliers mentioned earlier in the SuppTotl variable, so let us mark those outliers in the plot to see if there's possibly a stronger correlation if the outliers were removed.
 
 ```{r, warning=FALSE}
 outs = boxplot.stats(hw1$SuppTotl)$out
@@ -65,17 +73,27 @@ qplot(hw1$DepressT,hw1$SuppTotl, main = "Scatter Plot of the Data", shape = as.f
 
 This plot probably raises more questions than it answers to be honest, because it suggests that the points contributing to the negativity of the correlation might be invalid.
 
+ADDENDUM: It's best to remove these outliers based on subsequent information from correlations.
+
+```{r}
+deletes = which(outlier == 1)
+hw1 = hw1[-deletes,]
+qplot(hw1$DepressT,hw1$SuppTotl, main = "Scatter Plot of the Data", shape = as.factor(outlier[-deletes]), col = as.factor(outlier)[-deletes])
+```
+
+
 > Run a correlation analysis for the two variables. Is the correlation coefficient significant?
 
 ```{r}
-cor.test(hw1$DepressT,hw1$SuppTotl)
+c = cor.test(hw1$DepressT,hw1$SuppTotl)
+print(c)
 ```
 
-It looks like the correlation coefficient is significant, as *p* is far less than 0.05. The correlation coefficient itself is -0.26, weakly negative as previously assumed.
+It looks like the correlation coefficient is significant, as *p* is far less than 0.05. The correlation coefficient itself is `r round(c$estimate,5)`, weakly negative as previously assumed.
 
-> BUild a simple linear regression model with SuppTotl to predict DepressT. State your estimated regression equation and interpret the estimated coefficients.
+> Build a simple linear regression model with SuppTotl to predict DepressT. State your estimated regression equation and interpret the estimated coefficients.
 
-The regression model would take the form $Y_i = \beta_0 + \beta_1X_i + \epsilon_i$, where Y = DepressT, X = SuppTotl, $\beta_0$ is the intercept of the model, $\beta_1$ is the coefficient of SuppTotl, and $\epsilon_i$ represents the variance of the irreducible error. Essentially:
+The regression model would take the form $\hat{Y_i} = \beta_0 + \beta_1X_i + \epsilon_i$, where Y = DepressT, X = SuppTotl, $\beta_0$ is the intercept of the model, $\beta_1$ is the coefficient of SuppTotl, and $\epsilon_i$ represents the variance of the irreducible error. Essentially:
 
 $$DepressT = \beta_0 + \beta_1\times SuppTotl + \epsilon$$
 
@@ -84,19 +102,99 @@ model1 = lm(DepressT ~ SuppTotl,data = hw1)
 summary(model1)
 ```
 
-The intercept $\beta_0$ is estimated to be 74.977; this implies that even if levels of total support (SuppTotl) are zero, depression (DepressT) has a value of approximately 75 on their scale. This would make sense, as lack of social support wouldn't necessarily *decrease* depression. Likewise, the coefficient for social support $\beta_1$ is -0.2099; this implies that for every unit increase in social support, depression decreases by 0.2099 units. This is also sensible, as social support is *probably likely* to decrease depression. Additionally, each of these $\beta$ estimates is significant.
+The intercept $\beta_0$ is estimated to be `r round(model1$coefficients[1],3)`; this implies that even if levels of total support (SuppTotl) are zero, depression (DepressT) has a value of approximately 76 on their scale. This would make sense, as lack of social support wouldn't necessarily *decrease* depression. Likewise, the coefficient for social support $\beta_1$ is `r round(model1$coefficients[2],3)` ; this implies that for every unit increase in social support, depression decreases by 0.2249 units. This is also sensible, as social support is *probably likely* to decrease depression. Additionally, each of these $\beta$ estimates is significant.
+
+$$DepressT = `r round(model1$coefficients[1],4)` - `r round(model1$coefficients[2],4)`\times SuppTotl$$
 
 > List the 4 assumptions required for a linear regression model.
 
 - Observations are independent
 - Relationship is linear
-- Standard deviations of y is the same for all x
-- Y varies normally around its mean
+- Normality of residuals
+- Heteroscedasticity
 
 > Examine the assumptions for the fitted model.
 
-1. The observations should be independent, as there is no inclination that any of the observations were taken from the same participant or otherwise.
+1. The observations should be independent, as there is no inclination that any of the observations were taken from the same participant or otherwise related in some way.
 
-2. From the scatterplot, we can assume that the relationship would be best modeled as a linear one. A non-linear relationship would probably add more complexity that it would benefit the prediction.
+2. From the scatterplot, we can assume that the relationship would be best modeled as a linear one. A non-linear relationship would probably add more complexity than it would benefit the prediction.
 
-3. 
+3. The ideal way to check the normality of residuals is to check the standardised residual plots. The object `model1` actually has the residuals computed, so we can just plot them in a histogram to observe the distribution of these values.
+
+```{r}
+hist(model1$residuals, breaks = 25)
+```
+
+In this case, the residuals look relatively normally distributed but for a slight heavy left tail. We can add a density estimate in case it's not clear.
+
+```{r}
+qplot(model1$residuals, geom = "density")
+```
+
+As before, I wouldn't say it's non-normal, just skewed.
+
+4. To check heteroscedasticity, we can observe a residual plot to tell us where the residuals vary around Y.
+
+```{r}
+plot(model1$residuals, main = "Residual Plot")
+abline(a = 0, b = 0, col = "red")
+```
+
+According to this plot, the residuals seem to be well scattered around the mean of our predicted Y, indicating that the response varies normally around the mean. I would be somewhat suspicious of the one value in the lower right corner, however, it is the only value in this range and probably is not skewing the distribution too drastically.
+
+In conclusion, I believe all of our assumptions were not violated, however, it is possible that the normality of the residuals were violated by the outliers.
+
+> Make a scatterplot matrix of DeppressT, SuppTotl, PVLoss, AgeAtLos, and summarise your findings.
+
+```{r}
+variables = data.frame(DepressT = hw1$DepressT, SuppTotl = hw1$SuppTotl, PVLoss = hw1$PVLoss, AgeAtLos = hw1$AgeAtLos)
+pairs(variables)
+```
+
+There may be a moderate positive linear relationship between PVLoss and AgeAtLos. There may also be a very weak relationship between AgeAtLos and SuppTotl. SuppTotl and PVLoss may be related but the relationship is likely to be skewed.
+
+The relationships between DepressT, and SuppTotl and PVLoss are probably positively and negatively linear respectively. AgeAtLos seems to have a more random and uninterpretable scatter.
+
+> Build a multiple regression model to predict DepressT using PVLoss, SuppTotl, and AgeAtLos.
+
+This regression would take the form $\hat{Y_i} = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \epsilon_i$
+
+$$DepressT = \beta_0 + \beta_1\times SuppTotl + \beta_2\times PVLoss + \beta_3\times AgeAtLos + \epsilon$$
+
+```{r}
+model2 = lm(DepressT ~ SuppTotl + PVLoss + AgeAtLos, data = hw1)
+summary(model2)
+```
+
+Finally, the model would take the form:
+
+$$DepressT = `r round(model2$coefficients[1],4)` - `r round(abs(model2$coefficients[2]),4)` \times SuppTotl + `r round(abs(model2$coefficients[3]),4)` \times PVLoss - `r round(abs(model2$coefficients[4]),4)` \times AgeAtLos$$
+
+> Interpret the estimated regression coefficients 
+
+The intercept indicates that is all other coefficients were set to zero, DepressT would have a value of about 64. Further than that, as SuppTotl increases by one unit, DepressT decreases by 0.2276 units. A unit increase in PVLoss increases DepressT by 0.5869 units, and finally a unit increase in AgeAtLos decreases DepressT by 0.0608 units. Each of these seem to be reasonable associations.
+
+The significance of the predictors, however, suggest that AgeAtLos is actually not a significant predictor for depression. The others are, but that age is not significant is interesting as it suggests that while we assume depression becomes easier to deal with as we grow older, the participants themselves may have found this to be statisticall untrue.
+
+> Examine the Regression Assumptions for this multiple regression model.
+
+1. The observations should be independent, as there is no inclination that any of the observations were taken from the same participant or otherwise related in some way.
+
+2. From the scatterplot matrix above, we can assume that the relationships would be best modeled as a linear.
+
+3. The ideal way to check the normality of residuals is to check the histogram of standardised residuals. 
+
+```{r}
+hist(model2$residuals,breaks = 25, main = "Residual Plot")
+```
+
+This seems most probably normally distributed.
+
+4. To check heteroscedasticity, we can observe a residual plot to tell us where the residuals vary around Y.
+
+```{r, echo=TRUE}
+plot(model2$residuals, main = "Residual Plot")
+abline(a = 0, b = 0, col = "red")
+```
+
+This is a near perfect representation of scatter. I would say that this model ultimately shows better adherance to the normality and heteroscedaticity assumptions.
